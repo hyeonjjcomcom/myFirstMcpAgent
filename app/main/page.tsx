@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User } from 'lucide-react';
 
@@ -26,19 +25,88 @@ const ChatApp = () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = { role: 'user', content: input };
+    const currentInput = input.trim();
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
-    // 시뮬레이션을 위한 가짜 응답
-    setTimeout(() => {
-      const assistantMessage = { 
+    try {
+      const response = await fetch('/api/agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: currentInput }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        const assistantMessage = { 
+          role: 'assistant', 
+          content: data.message || '응답을 받지 못했습니다.' 
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        // 상세한 에러 메시지 처리
+        let errorMessage = 'Error: ';
+        
+        if (response.status === 400) {
+          errorMessage += '잘못된 요청입니다.';
+        } else if (response.status === 401) {
+          errorMessage += 'API 키가 유효하지 않습니다.';
+        } else if (response.status === 403) {
+          errorMessage += 'API 접근 권한이 없습니다.';
+        } else if (response.status === 429) {
+          errorMessage += 'API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+        } else if (response.status === 500) {
+          if (data.error?.includes('API 키가 설정되지 않았습니다')) {
+            errorMessage += 'API 키 미설정 - 환경변수에 OPENAI_API_KEY를 설정해주세요.';
+          } else {
+            errorMessage += '서버 오류가 발생했습니다.';
+          }
+        } else if (response.status === 503) {
+          errorMessage += 'OpenAI 서비스를 일시적으로 사용할 수 없습니다.';
+        } else {
+          errorMessage += `알 수 없는 오류 (${response.status})`;
+        }
+        
+        // 서버에서 제공한 구체적인 에러 메시지가 있다면 추가
+        if (data.error) {
+          errorMessage += ` - ${data.error}`;
+        }
+
+        const errorResponse = { 
+          role: 'assistant', 
+          content: errorMessage
+        };
+        setMessages(prev => [...prev, errorResponse]);
+      }
+    } catch (error: unknown) {
+      console.error('Network error:', error);
+      
+      let networkErrorMessage = 'Error: ';
+      
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        networkErrorMessage += '네트워크 연결을 확인해주세요. 서버가 실행 중인지 확인해보세요.';
+      } else if (error instanceof SyntaxError) {
+        networkErrorMessage += '서버 응답 형식이 올바르지 않습니다.';
+      } else if (error instanceof Error) {
+        networkErrorMessage += `네트워크 오류 - ${error.message}`;
+      } else if (typeof error === 'string') {
+        networkErrorMessage += `네트워크 오류 - ${error}`;
+      } else {
+        networkErrorMessage += '알 수 없는 네트워크 오류가 발생했습니다.';
+      }
+
+      const networkErrorResponse = { 
         role: 'assistant', 
-        content: '안녕하세요! 저는 AI 어시스턴트입니다. 어떻게 도와드릴까요?' 
+        content: networkErrorMessage
       };
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, networkErrorResponse]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
