@@ -265,7 +265,7 @@ const ChatApp = () => {
       <div style={headerStyle}>
         <h1 style={titleStyle}>
           <Bot size={24} color="#2563eb" />
-          ChatGPT Clone
+          Fit coach Mint
         </h1>
       </div>
 
