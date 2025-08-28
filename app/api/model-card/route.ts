@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       "추천은 사용자가 제공한 정보에 기반하며, 모든 개인에게 최적화된 것은 아닙니다."
     ],
     contact: "hyeonjj@comcom.ai",
-    api_endpoint: `https://my-first-mcp-agent.vercel.app/api/agent`,
+    api_endpoint: `https://my-first-mcp-agent-git-main-hyeonjjs-projects.vercel.app//api/agent`,
     api_method: "POST"
   };
 
